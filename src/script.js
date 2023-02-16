@@ -18,6 +18,37 @@ const canvas = document.querySelector('canvas.webgl')
 const scene = new THREE.Scene()
 
 /**
+ * Textures
+ */
+const textureLoader = new THREE.TextureLoader()
+
+// Grass Textures
+const grassColorTexture = textureLoader.load('/textures/grass/color.jpg')
+const grassAmbientOcclusionTexture = textureLoader.load(
+	'/textures/grass/ambientOcclusion.jpg'
+)
+const grassNormalTexture = textureLoader.load('/textures/grass/normal.jpg')
+const grassRoughnessTexture = textureLoader.load(
+	'/textures/grass/roughness.jpg'
+)
+
+// Repeat grass texture
+grassColorTexture.repeat.set(8, 8)
+grassAmbientOcclusionTexture.repeat.set(8, 8)
+grassNormalTexture.repeat.set(8, 8)
+grassRoughnessTexture.repeat.set(8, 8)
+
+grassColorTexture.wrapS = THREE.RepeatWrapping
+grassAmbientOcclusionTexture.wrapS = THREE.RepeatWrapping
+grassNormalTexture.wrapS = THREE.RepeatWrapping
+grassRoughnessTexture.wrapS = THREE.RepeatWrapping
+
+grassColorTexture.wrapT = THREE.RepeatWrapping
+grassAmbientOcclusionTexture.wrapT = THREE.RepeatWrapping
+grassNormalTexture.wrapT = THREE.RepeatWrapping
+grassRoughnessTexture.wrapT = THREE.RepeatWrapping
+
+/**
  * Models
  */
 const dracoLoader = new DRACOLoader()
@@ -31,9 +62,16 @@ gltfLoader.setDRACOLoader(dracoLoader)
 let mixer
 gltfLoader.load('/models/Fox/glTF/Fox.gltf', (gltf) => {
 	mixer = new THREE.AnimationMixer(gltf.scene)
-	const action = mixer.clipAction(gltf.animations[1])
+	const action = mixer.clipAction(gltf.animations[0])
 	action.play()
-	gltf.scene.scale.set(0.025, 0.025, 0.025)
+	gltf.scene.scale.set(0.05, 0.05, 0.05)
+
+	gltf.scene.traverse((node) => {
+		if (node.isMesh) {
+			node.castShadow = true
+			node.receiveShadow = true
+		}
+	})
 	scene.add(gltf.scene)
 })
 
@@ -41,33 +79,44 @@ gltfLoader.load('/models/Fox/glTF/Fox.gltf', (gltf) => {
  * Floor
  */
 const floor = new THREE.Mesh(
-	new THREE.PlaneGeometry(10, 10),
+	new THREE.PlaneGeometry(20, 20),
 	new THREE.MeshStandardMaterial({
-		color: '#444444',
-		metalness: 0,
-		roughness: 0.5,
+		map: grassColorTexture,
+		aoMap: grassAmbientOcclusionTexture,
+		normalMap: grassNormalTexture,
+		roughnessMap: grassRoughnessTexture,
 	})
 )
-floor.receiveShadow = true
+floor.geometry.setAttribute(
+	'uv2',
+	new THREE.Float32BufferAttribute(floor.geometry.attributes.uv.array, 2)
+)
 floor.rotation.x = -Math.PI * 0.5
 scene.add(floor)
 
 /**
  * Lights
  */
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.8)
+// Ambient light
+const ambientLight = new THREE.AmbientLight('#b9d5ff', 0.12)
+gui.add(ambientLight, 'intensity').min(0).max(1).step(0.001)
 scene.add(ambientLight)
 
-const directionalLight = new THREE.DirectionalLight(0xffffff, 0.6)
-directionalLight.castShadow = true
-directionalLight.shadow.mapSize.set(1024, 1024)
-directionalLight.shadow.camera.far = 15
-directionalLight.shadow.camera.left = -7
-directionalLight.shadow.camera.top = 7
-directionalLight.shadow.camera.right = 7
-directionalLight.shadow.camera.bottom = -7
-directionalLight.position.set(5, 5, 5)
-scene.add(directionalLight)
+// Directional light
+const moonLight = new THREE.DirectionalLight('#b9d5ff', 0.6)
+moonLight.position.set(4, 5, -2)
+moonLight.shadow.mapSize.width = 256
+moonLight.shadow.mapSize.height = 256
+moonLight.shadow.camera.far = 15
+gui.add(moonLight, 'intensity').min(0).max(1).step(0.001)
+gui.add(moonLight.position, 'x').min(-5).max(5).step(0.001)
+gui.add(moonLight.position, 'y').min(-5).max(5).step(0.001)
+gui.add(moonLight.position, 'z').min(-5).max(5).step(0.001)
+scene.add(moonLight)
+
+// Shadows
+moonLight.castShadow = true
+floor.receiveShadow = true
 
 /**
  * Sizes
@@ -101,7 +150,7 @@ const camera = new THREE.PerspectiveCamera(
 	0.1,
 	100
 )
-camera.position.set(2, 2, 2)
+camera.position.set(3, 3.5, 6)
 scene.add(camera)
 
 // Controls
