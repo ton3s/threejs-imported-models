@@ -27,14 +27,13 @@ dracoLoader.setDecoderPath('/draco/')
 const gltfLoader = new GLTFLoader()
 gltfLoader.setDRACOLoader(dracoLoader)
 
-// Duck
-gltfLoader.load('/models/Duck/glTF-Draco/Duck.gltf', (gltf) => {
-	scene.add(gltf.scene.children[0])
-})
-
-// Flight Helmet
-gltfLoader.load('/models/FlightHelmet/glTF/FlightHelmet.gltf', (gltf) => {
-	gltf.scene.position.set(2, 0, 0)
+// Fox
+let mixer
+gltfLoader.load('/models/Fox/glTF/Fox.gltf', (gltf) => {
+	mixer = new THREE.AnimationMixer(gltf.scene)
+	const action = mixer.clipAction(gltf.animations[1])
+	action.play()
+	gltf.scene.scale.set(0.025, 0.025, 0.025)
 	scene.add(gltf.scene)
 })
 
@@ -131,6 +130,9 @@ const tick = () => {
 	const elapsedTime = clock.getElapsedTime()
 	const deltaTime = elapsedTime - previousTime
 	previousTime = elapsedTime
+
+	// Update mixer
+	if (mixer) mixer.update(deltaTime)
 
 	// Update controls
 	controls.update()
